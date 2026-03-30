@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sub Discovery — Thomas Construction</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; padding: 2rem; }
+
+  .app { max-width: 980px; margin: 0 auto; }
+
+  .header { margin-bottom: 1.5rem; display: flex; align-items: baseline; justify-content: space-between; }
+  .header h1 { font-size: 22px; font-weight: 600; color: #1a1a18; }
+  .header p { font-size: 13px; color: #888780; margin-top: 4px; }
+
+  .search-card {
+    background: #fff;
+    border: 1px solid #e0dfd8;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+
+  label { font-size: 11px; color: #888780; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  select, input[type="text"] {
+    border: 1px solid #e0dfd8;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: #1a1a18;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  select:focus, input:focus { border-color: #888780; }
+
+  .btn-row { display: flex; gap: 10px; }
+
+  .search-btn {
+    background: #1a1a18;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+    transition: opacity 0.15s;
+  }
+  .search-btn:hover { opacity: 0.82; }
+  .search-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .usage-bar-wrap { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e0dfd8; }
+  .usage-label { font-size: 12px; color: #888780; white-space: nowrap; }
+  .bar-track { flex: 1; height: 4px; background: #e0dfd8; border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; background: #1D9E75; border-radius: 2px; width: 0%; transition: width 0.5s; }
+  .usage-count { font-size: 12px; color: #888780; white-space: nowrap; }
+
+  .banner {
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+  .banner-warning { background: #FAEEDA; border: 1px solid #FAC775; color: #854F0B; }
+  .banner-error { background: #FCEBEB; border: 1px solid #F7C1C1; color: #A32D2D; }
+  .banner-success { background: #E1F5EE; border: 1px solid #9FE1CB; color: #0F6E56; }
+
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .results-title { font-size: 15px; font-weight: 600; color: #1a1a18; }
+
+  .export-btn {
+    background: #fff;
+    border: 1px solid #e0dfd8;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    color: #1a1a18;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .export-btn:hover { background: #f5f4f0; }
+  .export-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .filter-chip {
+    font-size: 12px;
+    padding: 5px 13px;
+    border-radius: 99px;
+    border: 1px solid #e0dfd8;
+    cursor: pointer;
+    color: #888780;
+    background: #fff;
+    transition: all 0.15s;
+  }
+  .filter-chip.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
+  .filter-chip:hover:not(.active) { border-color: #888780; }
+  .filter-count { font-size: 12px; color: #888780; margin-left: auto; }
+
+  .table-wrap {
+    background: #fff;
+    border: 1px solid #e0dfd8;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .results-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  .results-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888780;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0dfd8;
+    background: #f5f4f0;
+    cursor: pointer;
+    user-select: none;
+  }
+  .results-table th:hover { background: #eceae4; }
+  .results-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0efe8;
+    color: #1a1a18;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .results-table tr:last-child td { border-bottom: none; }
+  .results-table tr:hover td { background: #fafaf7; }
+
+  .col-name { width: 22%; }
+  .col-phone { width: 14%; }
+  .col-address { width: 26%; }
+  .col-website { width: 20%; }
+  .col-flag { width: 18%; }
+
+  .flag { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
+  .flag-yes { background: #E1F5EE; color: #0F6E56; }
+  .flag-no { background: #FCEBEB; color: #A32D2D; }
+  .flag-unknown { background: #F1EFE8; color: #5F5E5A; }
+  .flag-checking { background: #F1EFE8; color: #888780; }
+
+  .progress-wrap { padding: 2.5rem; text-align: center; }
+  .progress-label { font-size: 13px; color: #888780; margin-bottom: 12px; }
+  .progress-track { width: 100%; height: 4px; background: #e0dfd8; border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+  .progress-bar { height: 100%; background: #1a1a18; border-radius: 2px; width: 0%; transition: width 0.4s; }
+  .progress-sub { font-size: 12px; color: #b4b2a9; }
+
+  .empty-state { text-align: center; padding: 3rem 1rem; color: #888780; font-size: 14px; }
+
+  a.sub-link { color: #1a1a18; text-decoration: underline; text-decoration-color: #e0dfd8; }
+  a.sub-link:hover { text-decoration-color: #888780; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>Sub discovery</h1>
+      <p>Search Google Places for subcontractors by trade and location</p>
+    </div>
+  </div>
+
+  <div class="search-card">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Trade</label>
+        <select id="trade">
+          <option value="">Select trade...</option>
+          <option value="Plumbing">Plumbing</option>
+          <option value="Electrical">Electrical</option>
+          <option value="HVAC">HVAC</option>
+          <option value="Framing">Framing</option>
+          <option value="Drywall">Drywall</option>
+          <option value="Concrete">Concrete</option>
+          <option value="Roofing">Roofing</option>
+          <option value="Flooring">Flooring</option>
+          <option value="Painting">Painting</option>
+          <option value="Fire Protection">Fire Protection</option>
+          <option value="Elevators">Elevators</option>
+          <option value="Masonry">Masonry</option>
+          <option value="Steel Erection">Steel Erection</option>
+          <option value="Landscaping">Landscaping</option>
+          <option value="Waterproofing">Waterproofing</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" id="city" placeholder="e.g. Rogers" />
+      </div>
+      <div class="form-group">
+        <label>State</label>
+        <input type="text" id="state" placeholder="e.g. AR" maxlength="2" />
+      </div>
+      <div class="form-group">
+        <label>Search radius</label>
+        <select id="radius">
+          <option value="10">10 miles</option>
+          <option value="25" selected>25 miles</option>
+          <option value="50">50 miles</option>
+          <option value="75">75 miles</option>
+          <option value="100">100 miles</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="search-btn" id="search-btn" onclick="runSearch()">Search subcontractors</button>
+    </div>
+
+    <div class="usage-bar-wrap">
+      <span class="usage-label">Estimated API usage this session</span>
+      <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+      <span class="usage-count" id="usage-count">0 / 11,764 free results</span>
+    </div>
+    <div class="banner banner-warning" id="warning-banner">
+      Heads up: You're approaching the monthly free tier limit (~$200 credit). Usage resets on the 1st of each month.
+    </div>
+    <div class="banner banner-error" id="error-banner"></div>
+  </div>
+
+  <div id="results-section" style="display:none;">
+    <div class="banner banner-success" id="success-toast" style="margin-bottom:12px;"></div>
+
+    <div class="results-header">
+      <span class="results-title" id="results-title">Results</span>
+      <button class="export-btn" id="export-btn" onclick="exportCSV()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M2 12v2h12v-2M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Download CSV
+      </button>
+    </div>
+
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-chip" onclick="setFilter('yes', this)">Commercial likely</button>
+      <button class="filter-chip" onclick="setFilter('unknown', this)">Unknown</button>
+      <button class="filter-chip" onclick="setFilter('no', this)">Residential only</button>
+      <span class="filter-count" id="filter-count"></span>
+    </div>
+
+    <div class="table-wrap">
+      <div class="progress-wrap" id="progress-wrap" style="display:none;">
+        <div class="progress-label" id="progress-label">Searching Google Places...</div>
+        <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="progress-sub" id="progress-sub"></div>
+      </div>
+      <table class="results-table" id="results-table" style="display:none;">
+        <thead>
+          <tr>
+            <th class="col-name">Company name</th>
+            <th class="col-phone">Phone</th>
+            <th class="col-address">Address</th>
+            <th class="col-website">Website</th>
+            <th class="col-flag" onclick="sortByFlag()">Commercial likely ↕</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+      <div class="empty-state" id="empty-state" style="display:none;">No results match this filter.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_KEY = "AIzaSyCysgjff0QYV6kwUr2vXz-bGPvQgfZt6Fs";
+const FREE_TIER = 11764;
+
+let currentFilter = 'all';
+let currentResults = [];
+let totalUsage = 0;
+let lastSearch = {};
+let flagSortAsc = true;
+
+const COMMERCIAL_KW = ["commercial","industrial","general contractor","new construction",
+  "ground up","tenant improvement","office","retail","hotel","multi-family","multifamily",
+  "apartment","warehouse","medical","healthcare","school","government","municipal",
+  "bid","bonded","project manager","superintendent","licensed & insured"];
+
+const RESIDENTIAL_KW = ["residential only","homeowner","home owner","single family",
+  "single-family","remodel","renovation","kitchen remodel","bathroom remodel","no commercial"];
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('error-banner').style.display = 'none';
+}
+
+function updateUsage(count) {
+  totalUsage += count;
+  const pct = Math.min((totalUsage / FREE_TIER) * 100, 100);
+  const bar = document.getElementById('bar-fill');
+  bar.style.width = pct.toFixed(1) + '%';
+  document.getElementById('usage-count').textContent =
+    totalUsage.toLocaleString() + ' / ' + FREE_TIER.toLocaleString() + ' free results';
+  if (pct >= 80) {
+    bar.style.background = '#E24B4A';
+    document.getElementById('warning-banner').style.display = 'block';
+  } else if (pct >= 60) {
+    bar.style.background = '#EF9F27';
+  }
+}
+
+function setProgress(label, pct, sub) {
+  document.getElementById('progress-label').textContent = label;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-sub').textContent = sub || '';
+}
+
+async function geocode(city, state) {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city + ', ' + state)}&key=${API_KEY}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.status !== 'OK') throw new Error('Could not find location: ' + city + ', ' + state);
+  return d.results[0].geometry.location;
+}
+
+async function searchPlaces(trade, lat, lng, radiusMeters) {
+  const query = encodeURIComponent(trade + ' contractor');
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&location=${lat},${lng}&radius=${radiusMeters}&key=${API_KEY}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.status !== 'OK' && d.status !== 'ZERO_RESULTS') {
+    throw new Error('Places API error: ' + d.status + (d.error_message ? ' — ' + d.error_message : ''));
+  }
+  return d.results || [];
+}
+
+async function getDetails(placeId) {
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,formatted_address,website&key=${API_KEY}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  return d.result || {};
+}
+
+function checkCommercial(text) {
+  if (!text) return 'unknown';
+  const t = text.toLowerCase();
+  const commHits = COMMERCIAL_KW.filter(kw => t.includes(kw)).length;
+  const resHits = RESIDENTIAL_KW.filter(kw => t.includes(kw)).length;
+  if (resHits > 0 && commHits === 0) return 'no';
+  if (commHits >= 2) return 'yes';
+  if (commHits === 1) return 'yes';
+  return 'unknown';
+}
+
+async function fetchWebsiteText(url) {
+  try {
+    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+    const d = await r.json();
+    return d.contents || '';
+  } catch {
+    return '';
+  }
+}
+
+function milesToMeters(miles) {
+  return Math.round(parseFloat(miles) * 1609.34);
+}
+
+async function runSearch() {
+  const trade = document.getElementById('trade').value;
+  const city = document.getElementById('city').value.trim();
+  const state = document.getElementById('state').value.trim().toUpperCase();
+  const radius = document.getElementById('radius').value;
+
+  if (!trade || !city || !state) {
+    showError('Please fill in trade, city, and state before searching.');
+    return;
+  }
+
+  hideError();
+  document.getElementById('search-btn').disabled = true;
+  document.getElementById('results-section').style.display = 'block';
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('results-table').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('success-toast').style.display = 'none';
+  currentResults = [];
+  lastSearch = { trade, city, state, radius };
+
+  try {
+    setProgress('Finding location...', 5, '');
+    const loc = await geocode(city, state);
+
+    setProgress('Searching Google Places...', 15, 'Fetching subcontractor listings');
+    const radiusMeters = milesToMeters(radius);
+    const places = await searchPlaces(trade, loc.lat, loc.lng, radiusMeters);
+
+    if (places.length === 0) {
+      document.getElementById('progress-wrap').style.display = 'none';
+      document.getElementById('results-title').textContent = '0 results — ' + trade + ' near ' + city + ', ' + state;
+      document.getElementById('empty-state').style.display = 'block';
+      updateUsage(1);
+      document.getElementById('search-btn').disabled = false;
+      return;
+    }
+
+    updateUsage(places.length);
+    setProgress('Loading details...', 30, '0 of ' + places.length + ' companies');
+
+    const results = [];
+    for (let i = 0; i < places.length; i++) {
+      const pct = 30 + Math.round(((i + 1) / places.length) * 50);
+      setProgress('Loading details...', pct, (i + 1) + ' of ' + places.length + ' companies');
+      const details = await getDetails(places[i].place_id);
+      results.push({
+        name: details.name || places[i].name || '',
+        trade,
+        phone: details.formatted_phone_number || '',
+        address: details.formatted_address || '',
+        website: details.website || '',
+        commercial_flag: 'checking'
+      });
+    }
+
+    setProgress('Checking websites for commercial work...', 80, '0 of ' + results.length + ' sites');
+
+    for (let i = 0; i < results.length; i++) {
+      const pct = 80 + Math.round(((i + 1) / results.length) * 18);
+      setProgress('Checking websites...', pct, (i + 1) + ' of ' + results.length + ' sites');
+      if (results[i].website) {
+        const text = await fetchWebsiteText(results[i].website);
+        results[i].commercial_flag = checkCommercial(text);
+      } else {
+        results[i].commercial_flag = 'unknown';
+      }
+    }
+
+    currentResults = results;
+    setProgress('Done', 100, '');
+
+    document.getElementById('results-title').textContent =
+      results.length + ' results — ' + trade + ' near ' + city + ', ' + state;
+
+    setTimeout(() => {
+      document.getElementById('progress-wrap').style.display = 'none';
+      document.getElementById('results-table').style.display = 'table';
+      currentFilter = 'all';
+      document.querySelectorAll('.filter-chip').forEach((c, i) => c.classList.toggle('active', i === 0));
+      renderRows();
+    }, 300);
+
+  } catch (err) {
+    document.getElementById('progress-wrap').style.display = 'none';
+    showError(err.message);
+  } finally {
+    document.getElementById('search-btn').disabled = false;
+  }
+}
+
+function renderRows() {
+  const tbody = document.getElementById('results-body');
+  const filtered = currentFilter === 'all'
+    ? currentResults
+    : currentResults.filter(r => r.commercial_flag === currentFilter);
+
+  document.getElementById('filter-count').textContent =
+    filtered.length + ' of ' + currentResults.length + ' shown';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    document.getElementById('results-table').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('results-table').style.display = 'table';
+
+  tbody.innerHTML = filtered.map(r => {
+    const flagClass = r.commercial_flag === 'yes' ? 'flag-yes'
+      : r.commercial_flag === 'no' ? 'flag-no'
+      : r.commercial_flag === 'checking' ? 'flag-checking' : 'flag-unknown';
+    const flagText = r.commercial_flag === 'yes' ? 'Yes'
+      : r.commercial_flag === 'no' ? 'No'
+      : r.commercial_flag === 'checking' ? 'Checking...' : 'Unknown';
+    const nameCell = r.website
+      ? `<a class="sub-link" href="${r.website}" target="_blank">${r.name}</a>`
+      : r.name;
+    const websiteCell = r.website
+      ? `<a class="sub-link" href="${r.website}" target="_blank">${r.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</a>`
+      : '—';
+    return `<tr>
+      <td title="${r.name}">${nameCell}</td>
+      <td>${r.phone || '—'}</td>
+      <td title="${r.address}">${r.address}</td>
+      <td title="${r.website}">${websiteCell}</td>
+      <td><span class="flag ${flagClass}">${flagText}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderRows();
+}
+
+function sortByFlag() {
+  const order = flagSortAsc ? ['yes', 'unknown', 'no'] : ['no', 'unknown', 'yes'];
+  flagSortAsc = !flagSortAsc;
+  currentResults.sort((a, b) => order.indexOf(a.commercial_flag) - order.indexOf(b.commercial_flag));
+  renderRows();
+}
+
+function exportCSV() {
+  if (currentResults.length === 0) return;
+  const toExport = currentFilter === 'all'
+    ? currentResults
+    : currentResults.filter(r => r.commercial_flag === currentFilter);
+
+  const headers = ['Company Name', 'Trade', 'Phone', 'Address', 'Website', 'Commercial Likely'];
+  const rows = toExport.map(r => [
+    r.name, r.trade, r.phone, r.address, r.website,
+    r.commercial_flag === 'yes' ? 'Yes' : r.commercial_flag === 'no' ? 'No' : 'Unknown'
+  ]);
+
+  const csv = [headers, ...rows].map(row =>
+    row.map(cell => '"' + (cell || '').replace(/"/g, '""') + '"').join(',')
+  ).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const { trade, city, state } = lastSearch;
+  a.href = url;
+  a.download = `${trade}_${city}_${state}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  const toast = document.getElementById('success-toast');
+  toast.textContent = 'CSV downloaded — ' + toExport.length + ' results. Drag the file into Google Sheets to import.';
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 6000);
+}
+</script>
+</body>
+</html>
